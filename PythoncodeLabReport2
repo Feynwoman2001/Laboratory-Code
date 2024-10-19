@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Dec 12 11:31:09 2019
+
+@author: matildaberggren
+"""
+
+import scipy as sp
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+
+#%%
+s1=sp.array([0.185, 0.136, 0.124, 0.117, 0.112, 0.110])
+s2=sp.array([0.231,0.368, 0.484, 0.582, 0.683, 0.792])
+d=sp.array([0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+sp1=d-s1
+sp2=d-s2
+
+b1=1/s1
+a1=1/sp1
+error=[.0005]*6
+err=sp.array(error)
+
+fit1, cov1=sp.polyfit(a1, b1, 1, w=1/err, cov=True)
+p1=sp.poly1d(fit1)
+#print(fit1[0])
+#print(fit1[1])
+#print(cov1[0,0])
+#print(cov1[1,1])
+plt.xlabel("1/s1 (m)")
+plt.ylabel("1/s1´ (m)")
+plt.plot(a1, b1,'x')
+plt.plot(a1, p1(a1))
+plt.title("Thin Lens Formula Plot")
+plt.show()
+
+b2=1/s2
+a2=1/sp2
+
+fit2, cov2=sp.polyfit(a2, b2, 1, w=1/err, cov=True)
+p2=sp.poly1d(fit2)
+#print(fit2[0])
+#print(fit2[1])
+#print(cov2[0,0])
+#print(cov2[1,1])
+plt.xlabel("1/s2 (m)")
+plt.ylabel("1/s2´ (m)")
+plt.title("Thin Lens Formula Plot")
+plt.plot(a2, b2,'x')
+plt.plot(a2, p2(a2))
+plt.show()
+
+m=(fit2[1]+fit1[1])/2
+
+errm1=sp.sqrt((sp.sqrt(cov1[1,1])**2)+sp.sqrt(cov2[1,1])**2)
+errm=-1*(m**-2)*errm1
+print(1/m,"+/-" ,errm)
+print((1/m)-errm) #therefore lies within the range
+
+
+
+#%%
+v=sp.array([0.361,0.708,0.756,0.574,0.080,0.023,0.344,0.715,0.794,0.466,0.088,0.036,0.360])
+a1=sp.array([0,30,60,90,120,150,180,210,240,270,300,330,360])
+a=a1*(sp.pi/180)
+errorv=[.0005]*13
+errv=sp.array(errorv)
+errora=[1]*13
+erra=sp.array(errora)
+plt.plot(a,v,'x')
+
+
+def fit_func(x,A,e):
+    cosine=(A*sp.cos(x+e))**2
+    return cosine
+
+initial_guess=[0.4, 0.9]
+
+po,po_cov=sp.optimize.curve_fit(fit_func,a,v,initial_guess, errv)
+a2=sp.arange(0, 7, 0.1)
+A1=max(fit_func(a2,po[0],po[1]))
+plt.plot(a2,fit_func(a2,po[0],po[1]),label='Fit results')
+plt.plot(a2, A1*(sp.cos(a2)**2), label="Fit at offset=0")
+plt.xlabel("Angle (Radians)")
+plt.ylabel("Voltage (V)")
+plt.title("Intensity Graph")
+plt.legend()
+plt.show()
+#find error for amplitude
+print("Amplitude", A1)
+print("Phase Shift", po[1])
+print(po)
+print("Phase Shift in Degrees",po[1]*(180/sp.pi))
+print(po_cov)
+error=[sp.sqrt(po_cov[0,0]),sp.sqrt(-po_cov[0,1]),sp.sqrt(-po_cov[1,0]),sp.sqrt(po_cov[1,1])]
+print(error)
+#how do I do error propagation for A1 considering that I used po[0] and po[1] to calculate fit it, and they both have errors i.e. what is the erro propagatino of this function?
+#%%
+c=(sp.cos(a+po[1]))**2
+
+fit,cov=sp.polyfit(c,v,1, cov=True)
+p=sp.poly1d(fit)
+plt.plot(c, v, 'x')
+plt.plot(c, p(c))
+plt.xlabel("cos^2(angle-offset)")
+plt.ylabel("Voltage (V)")
+plt.title("Malus' Law - Least Square Line Fit")
+plt.show()
+
+print(fit[0])
+print("Error is +/-",sp.sqrt(cov[0,0]))
